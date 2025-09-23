@@ -21,19 +21,18 @@ if [ ! -f .env ]; then
     fi
 fi
 
-printf "Проверяем MongoDB...\n"
+printf "Запускаем MongoDB...\n"
 docker compose up -d mongo >/dev/null
 
-# Wait for MongoDB to become available
 until docker compose exec -T mongo mongosh --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
     printf "."
     sleep 2
 done
 printf "\nMongoDB готова.\n"
 
-printf "Инициализируем базу...\n"
-docker compose run --rm bot python init_db.py >/dev/null
-printf "База подготовлена.\n"
+printf "Инициализируем базу данных...\n"
+docker compose run --rm bot python -m scripts.init_db >/dev/null
+printf "База данных подготовлена.\n"
 
 printf "Собираем и запускаем контейнер бота...\n"
 docker compose up -d --build bot >/dev/null

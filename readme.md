@@ -1,63 +1,83 @@
+# Telegram Festive Bot
+
+Простой Telegram-бот, который по команде или кнопке «Старт» поздравляет пользователя с праздником и использует MongoDB для хранения данных игры.
 
 ## Возможности
-- `/start` — регистрация игрока и показ меню действий
-- Административные команды `/game_start`, `/game_stop`, `/game_reset`
-- Автоматическая инициализация коллекций MongoDB и кнопок
+- `/start` или нажатие кнопки «Старт» в клавиатуре отправляет праздничное поздравление.
+
+## Файловая структура
+```
+app/
+├── config.py           # Загрузка настроек приложения и параметров MongoDB
+├── database/           # Работа с MongoDB и инициализация коллекций
+│   ├── __init__.py
+│   └── management.py
+├── handlers/           # Обработчики команд и сообщений
+│   ├── __init__.py
+│   └── start.py
+└── keyboards/          # Описание клавиатур
+    ├── __init__.py
+    └── main.py
+bot.py                  # Точка входа и запуск бота
+scripts/
+├── __init__.py
+└── init_db.py          # Скрипт подготовки базы данных
+```
 
 ## Переменные окружения
-Создайте файл `.env` со следующими параметрами (можно использовать `.env.example` как шаблон):
+Создайте файл `.env` по примеру `.env.example` и заполните его:
 
 ```
-BOT_TOKEN=8092897515:AAFtrE6rJXvMezqIHn_sclqni-DgQuFxlCg
+BOT_TOKEN=ваш_токен_бота
 MONGO_URI=mongodb://root:root@mongo:27017/tg_cosmetics?authSource=admin
 MONGO_DB_NAME=tg_cosmetics
 INITIAL_ADMIN_ID=123456789
-ADMIN_IDS=987654321,123456789
+ADMIN_IDS=123456789
 ```
 
-- `BOT_TOKEN` — токен Telegram-бота
-- `MONGO_URI` — строка подключения к MongoDB
-- `MONGO_DB_NAME` — имя базы данных (по умолчанию `tg_cosmetics`)
-- `INITIAL_ADMIN_ID` — основной администратор, создается в документе игры при инициализации
-- `ADMIN_IDS` — дополнительные администраторы через запятую
+## Подготовка базы данных
+Перед запуском рекомендуется инициализировать MongoDB:
+
+```bash
+python -m scripts.init_db
+```
+
+Для повторного запуска игры используйте флаг `--reset`, чтобы очистить игроков и кнопки:
+
+```bash
+python -m scripts.init_db --reset
+```
 
 ## Локальный запуск
-1. Установите Python 3.11+ и MongoDB.
+1. Установите Python 3.11+.
 2. Создайте и заполните `.env`.
 3. Установите зависимости:
    ```bash
    pip install -r requirements.txt
    ```
-4. Инициализируйте базу (создаст документ игры и кнопки):
-   ```bash
-   python init_db.py --reset
-   ```
+4. Подготовьте базу данных (см. выше).
 5. Запустите бота:
    ```bash
    python bot.py
    ```
 
 ## Запуск через Docker
-Для быстрого разворачивания используйте скрипт `deploy.sh`, который подготовит `.env`, поднимет MongoDB, заполнит базу и соберёт контейнер бота.
+Используйте `docker compose` для запуска MongoDB и бота:
 
 ```bash
-./deploy.sh
+docker compose up -d --build mongo bot
 ```
 
-Скрипт предполагает наличие Docker и Docker Compose v2 (`docker compose`). После выполнения логи бота доступны командой:
+После запуска можно подготовить базу данных в контейнере бота:
+
+```bash
+docker compose run --rm bot python -m scripts.init_db
+```
+
+Логи бота можно посмотреть командой:
 
 ```bash
 docker compose logs -f bot
 ```
 
-При необходимости повторной инициализации базы данных выполните:
-
-```bash
-docker compose run --rm bot python init_db.py --reset
-```
-
-Затем перезапустите бота:
-
-```bash
-docker compose up -d --build bot
-```
+Для удобства доступен скрипт `deploy.sh`, который запускает MongoDB, инициализирует базу и поднимает контейнер с ботом автоматически.
