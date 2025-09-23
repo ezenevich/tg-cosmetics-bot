@@ -1,6 +1,3 @@
-# Telegram Game Bot
-
-Простой бот-игра для Telegram на Python с использованием [python-telegram-bot](https://python-telegram-bot.org/) и [MongoDB](https://www.mongodb.com/).
 
 ## Возможности
 - `/start` — регистрация игрока и показ меню действий
@@ -11,7 +8,7 @@
 Создайте файл `.env` со следующими параметрами (можно использовать `.env.example` как шаблон):
 
 ```
-BOT_TOKEN=telegram-bot-token
+BOT_TOKEN=8092897515:AAFtrE6rJXvMezqIHn_sclqni-DgQuFxlCg
 MONGO_URI=mongodb://root:root@mongo:27017/tg_cosmetics?authSource=admin
 MONGO_DB_NAME=tg_cosmetics
 INITIAL_ADMIN_ID=123456789
