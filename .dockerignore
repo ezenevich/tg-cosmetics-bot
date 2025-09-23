@@ -1,9 +1,4 @@
-__pycache__/
-*.py[cod]
-*.env
-.env
+__pycache__
 .git
-.gitignore
-.mypy_cache/
-.pytest_cache/
-.venv/
+.idea
+.env
