@@ -61,14 +61,17 @@ def build_categories_keyboard(
 
 
 def build_products_keyboard(
-    products: Sequence[Tuple[int, str]], *, brand_id: int
+    products: Sequence[Tuple[int, str]], *, brand_id: int, category_id: int
 ) -> InlineKeyboardMarkup:
     """Return an inline keyboard with a button for each product."""
 
     rows: list[list[InlineKeyboardButton]] = [
         [
             InlineKeyboardButton(
-                name, callback_data=f"{PRODUCT_CALLBACK_PREFIX}{product_id}"
+                name,
+                callback_data=(
+                    f"{PRODUCT_CALLBACK_PREFIX}{brand_id}:{category_id}:{product_id}"
+                ),
             )
         ]
         for product_id, name in products
@@ -82,3 +85,22 @@ def build_products_keyboard(
         ]
     )
     return InlineKeyboardMarkup(rows)
+
+
+def build_product_details_keyboard(
+    *, brand_id: int, category_id: int
+) -> InlineKeyboardMarkup:
+    """Return a keyboard with a single back button to the product list."""
+
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "⬅️ НАЗАД",
+                    callback_data=(
+                        f"{CATEGORY_CALLBACK_PREFIX}{brand_id}:{category_id}"
+                    ),
+                )
+            ]
+        ]
+    )
