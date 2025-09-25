@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -22,17 +22,9 @@ class Settings:
     mongo_db_name: str
     initial_admin_id: Optional[int]
 
-    @property
-    def all_admin_ids(self) -> Tuple[int, ...]:
-        """Return a sorted tuple of all known admin ids."""
-
-        ids = set([])
-        if self.initial_admin_id is not None:
-            ids.add(self.initial_admin_id)
-        return tuple(sorted(ids))
 
 def _parse_initial_admin(raw_value: Optional[str]) -> Optional[int]:
-    """Parse the initial admin identifier if provided."""
+    """Parse the initial administrator identifier from the environment."""
 
     if not raw_value:
         return None

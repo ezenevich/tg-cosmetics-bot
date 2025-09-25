@@ -19,6 +19,7 @@ class MongoCollections:
     client: MongoClient
     database: Database
     users: Collection
+    admins: Collection
     brands: Collection
     products: Collection
 
@@ -32,6 +33,7 @@ def create_mongo_collections(settings: Settings) -> MongoCollections:
         client=client,
         database=database,
         users=database["users"],
+        admins=database["admins"],
         brands=database["brands"],
         products=database["products"],
     )
