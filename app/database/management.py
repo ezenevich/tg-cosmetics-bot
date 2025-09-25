@@ -174,7 +174,10 @@ def load_products_from_file(
         if not image_base64 and image_path_value:
             image_path = Path(str(image_path_value))
             if not image_path.is_absolute():
-                image_path = (path.parent / image_path).resolve()
+                if image_path.exists():
+                    image_path = image_path.resolve()
+                else:
+                    image_path = (path.parent / image_path).resolve()
             try:
                 image_base64 = base64.b64encode(image_path.read_bytes()).decode()
             except OSError as exc:
