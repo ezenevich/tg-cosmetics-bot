@@ -19,8 +19,6 @@ class MongoCollections:
     client: MongoClient
     database: Database
     users: Collection
-    buttons: Collection
-    game: Collection
     brands: Collection
     products: Collection
 
@@ -34,8 +32,6 @@ def create_mongo_collections(settings: Settings) -> MongoCollections:
         client=client,
         database=database,
         users=database["users"],
-        buttons=database["buttons"],
-        game=database["game"],
         brands=database["brands"],
         products=database["products"],
     )
