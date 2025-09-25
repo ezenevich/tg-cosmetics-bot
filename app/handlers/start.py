@@ -32,6 +32,7 @@ HELP_MESSAGE = (
 )
 
 _LAST_BOT_MESSAGE_KEY = "last_bot_message_id"
+_LAST_BOT_MESSAGE_TYPE_KEY = "last_bot_message_type"
 
 
 async def _safe_delete_message(
@@ -51,6 +52,8 @@ async def _cleanup_previous_messages(
         return
 
     stored_id = context.user_data.pop(_LAST_BOT_MESSAGE_KEY, None)
+    if stored_id is not None:
+        context.user_data.pop(_LAST_BOT_MESSAGE_TYPE_KEY, None)
     trigger_message_id = None
 
     if stored_id is not None:
@@ -66,8 +69,11 @@ async def _cleanup_previous_messages(
             await _safe_delete_message(context, chat.id, trigger_message_id)
 
 
-def _store_last_message(context: ContextTypes.DEFAULT_TYPE, message: Message) -> None:
+def _store_last_message(
+    context: ContextTypes.DEFAULT_TYPE, message: Message, *, message_type: str
+) -> None:
     context.user_data[_LAST_BOT_MESSAGE_KEY] = message.message_id
+    context.user_data[_LAST_BOT_MESSAGE_TYPE_KEY] = message_type
 
 
 def _get_mongo_collections(context: ContextTypes.DEFAULT_TYPE) -> MongoCollections:
@@ -85,7 +91,7 @@ async def _send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         MAIN_MENU_MESSAGE,
         reply_markup=MAIN_MENU_KEYBOARD,
     )
-    _store_last_message(context, message)
+    _store_last_message(context, message, message_type="main_menu")
 
 
 def _load_brands(context: ContextTypes.DEFAULT_TYPE) -> Sequence[Tuple[int, str]]:
@@ -123,7 +129,7 @@ async def _show_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         CATALOG_MESSAGE,
         reply_markup=keyboard,
     )
-    _store_last_message(context, message)
+    _store_last_message(context, message, message_type="catalog")
 
 
 async def _show_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -143,7 +149,7 @@ async def _show_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         HELP_MESSAGE,
         reply_markup=BACK_BUTTON_KEYBOARD,
     )
-    _store_last_message(context, message)
+    _store_last_message(context, message, message_type="help")
 
 
 async def _go_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -176,7 +182,16 @@ async def _brand_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /start command and show the main menu."""
 
-    if update.message is None:
+    message = update.message
+    chat = update.effective_chat
+    if message is None or chat is None:
+        return
+
+    if (
+        context.user_data.get(_LAST_BOT_MESSAGE_TYPE_KEY) == "main_menu"
+        and context.user_data.get(_LAST_BOT_MESSAGE_KEY) is not None
+    ):
+        await _safe_delete_message(context, chat.id, message.message_id)
         return
     await _send_main_menu(update, context)
 
