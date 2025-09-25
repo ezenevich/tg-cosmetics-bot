@@ -20,6 +20,7 @@ class MongoCollections:
     database: Database
     admins: Collection
     brands: Collection
+    categories: Collection
     products: Collection
 
 
@@ -33,5 +34,6 @@ def create_mongo_collections(settings: Settings) -> MongoCollections:
         database=database,
         admins=database["admins"],
         brands=database["brands"],
+        categories=database["categories"],
         products=database["products"],
     )

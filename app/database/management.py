@@ -11,7 +11,9 @@ from app.database import MongoCollections
 __all__ = [
     "ensure_brands_collection",
     "ensure_admins_collection",
+    "ensure_categories_collection",
     "DEFAULT_BRANDS",
+    "DEFAULT_CATEGORIES",
 ]
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,16 @@ DEFAULT_BRANDS = (
     "FANOLA",
     "JEM",
     "OCEANYST",
+)
+
+
+DEFAULT_CATEGORIES = (
+    "шампунь",
+    "кондиционер",
+    "маска",
+    "лосьон",
+    "сыворотка",
+    "прочее",
 )
 
 def ensure_brands_collection(brands: Collection, brand_names: Sequence[str]) -> None:
@@ -48,6 +60,29 @@ def ensure_brands_collection(brands: Collection, brand_names: Sequence[str]) -> 
         logger.info("Добавлено %s брендов", len(new_docs))
     else:
         logger.info("Коллекция брендов уже инициализирована")
+
+
+def ensure_categories_collection(
+    categories: Collection, category_names: Sequence[str]
+) -> None:
+    """Populate the categories collection with default category names."""
+
+    existing = {
+        doc["name"]: int(doc.get("id", 0))
+        for doc in categories.find({}, {"name": 1, "id": 1})
+    }
+    next_id = (max(existing.values()) if existing else 0) + 1
+    new_docs = []
+    for name in category_names:
+        if name in existing:
+            continue
+        new_docs.append({"id": next_id, "name": name})
+        next_id += 1
+    if new_docs:
+        categories.insert_many(new_docs)
+        logger.info("Добавлено %s категорий", len(new_docs))
+    else:
+        logger.info("Коллекция категорий уже инициализирована")
 
 
 def ensure_admins_collection(
