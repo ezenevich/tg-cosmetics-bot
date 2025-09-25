@@ -150,6 +150,11 @@ def _load_categories(context: ContextTypes.DEFAULT_TYPE) -> Sequence[Tuple[int, 
         if not name:
             continue
         categories.append((category_id, name))
+
+    # Переносим категорию «прочее» в конец списка независимо от алфавитного порядка
+    categories.sort(
+        key=lambda item: (item[1].strip().lower() == "прочее", item[1].strip().lower())
+    )
     return categories
 
 
