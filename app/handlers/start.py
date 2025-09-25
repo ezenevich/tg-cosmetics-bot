@@ -47,17 +47,19 @@ async def _safe_delete_message(
         pass
 
 
-def _is_start_command_message(message: Message | None) -> bool:
-    """Return ``True`` if the message contains the ``/start`` command."""
+def _is_start_trigger_message(message: Message | None) -> bool:
+    """Return ``True`` if the message contains the start command or button text."""
 
     if message is None:
         return False
 
-    text = message.text or message.caption
-    if not text:
+    text = message.text or message.caption or ""
+    normalized = text.strip().casefold()
+
+    if not normalized:
         return False
 
-    return text.strip().startswith("/start")
+    return normalized.startswith("/start") or normalized == "старт"
 
 
 async def _cleanup_previous_messages(
@@ -89,7 +91,7 @@ async def _cleanup_previous_messages(
         if (
             trigger_message_id is not None
             and trigger_message_id != stored_id
-            and not _is_start_command_message(trigger_message)
+            and not _is_start_trigger_message(trigger_message)
         ):
             await _safe_delete_message(context, chat.id, trigger_message_id)
 
@@ -277,12 +279,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if message is None or chat is None:
         return
 
-    if (
-        context.user_data.get(_LAST_BOT_MESSAGE_TYPE_KEY) == "main_menu"
-        and context.user_data.get(_LAST_BOT_MESSAGE_KEY) is not None
-    ):
-        await _safe_delete_message(context, chat.id, message.message_id)
-        return
     await _send_main_menu(update, context)
 
 
