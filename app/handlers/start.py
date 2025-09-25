@@ -20,9 +20,11 @@ from app.keyboards.main import (
     BACK_CALLBACK,
     BRAND_CALLBACK_PREFIX,
     CATALOG_CALLBACK,
+    CATEGORY_CALLBACK_PREFIX,
     HELP_CALLBACK,
     MAIN_MENU_KEYBOARD,
     build_brands_keyboard,
+    build_categories_keyboard,
 )
 
 MAIN_MENU_MESSAGE = "Мы рады видеть вас в нашем онлайн помошнике по подбору косметики"
@@ -30,6 +32,7 @@ CATALOG_MESSAGE = "Выберите бренд из списка ниже:"
 HELP_MESSAGE = (
     "наш бот умеет делать то или другое, и вот для помощи вам телефон нашего администратора"
 )
+CATEGORIES_MESSAGE_TEMPLATE = "Выберите категорию для бренда {brand}:"
 
 _LAST_BOT_MESSAGE_KEY = "last_bot_message_id"
 _LAST_BOT_MESSAGE_TYPE_KEY = "last_bot_message_type"
@@ -132,6 +135,22 @@ def _load_brands(context: ContextTypes.DEFAULT_TYPE) -> Sequence[Tuple[int, str]
     return brands
 
 
+def _load_categories(context: ContextTypes.DEFAULT_TYPE) -> Sequence[Tuple[int, str]]:
+    mongo = _get_mongo_collections(context)
+    cursor = mongo.categories.find({}, {"id": 1, "name": 1}).sort("name", 1)
+    categories: List[Tuple[int, str]] = []
+    for document in cursor:
+        try:
+            category_id = int(document.get("id"))
+        except (TypeError, ValueError):
+            continue
+        name = str(document.get("name", "")).strip()
+        if not name:
+            continue
+        categories.append((category_id, name))
+    return categories
+
+
 async def _show_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     if query is None:
@@ -195,10 +214,59 @@ async def _brand_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     mongo = _get_mongo_collections(context)
     brand = mongo.brands.find_one({"id": brand_id}, {"name": 1})
     brand_name = str(brand.get("name")) if brand and brand.get("name") else None
-    response = (
-        f"Вы выбрали бренд {brand_name}" if brand_name else "Бренд не найден"
+    if not brand_name:
+        await query.answer("Бренд не найден", show_alert=True)
+        return
+
+    categories = _load_categories(context)
+    if not categories:
+        await query.answer("Категории не найдены", show_alert=True)
+        return
+
+    await query.answer()
+    await _cleanup_previous_messages(update, context, delete_trigger=False)
+
+    chat = update.effective_chat
+    if chat is None:
+        return
+
+    keyboard = build_categories_keyboard(categories, brand_id=brand_id)
+    message = await context.bot.send_message(
+        chat.id,
+        CATEGORIES_MESSAGE_TEMPLATE.format(brand=brand_name),
+        reply_markup=keyboard,
     )
-    await query.answer(response, show_alert=not bool(brand_name))
+    _store_last_message(context, message, message_type=f"categories:{brand_id}")
+
+
+async def _category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if query is None or query.data is None:
+        return
+
+    data = query.data.split(":", 1)[1]
+    try:
+        brand_part, category_part = data.split(":", 1)
+        brand_id = int(brand_part)
+        category_id = int(category_part)
+    except (ValueError, IndexError):
+        await query.answer("Категория не найдена", show_alert=True)
+        return
+
+    mongo = _get_mongo_collections(context)
+    brand = mongo.brands.find_one({"id": brand_id}, {"name": 1})
+    category = mongo.categories.find_one({"id": category_id}, {"name": 1})
+
+    brand_name = str(brand.get("name")) if brand and brand.get("name") else None
+    category_name = (
+        str(category.get("name")) if category and category.get("name") else None
+    )
+
+    if not brand_name or not category_name:
+        await query.answer("Категория не найдена", show_alert=True)
+        return
+
+    await query.answer(f"Вы выбрали {category_name} бренда {brand_name}")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -235,5 +303,11 @@ def register_start_handlers(application: Application) -> None:
     application.add_handler(
         CallbackQueryHandler(
             _brand_selected, pattern=f"^{BRAND_CALLBACK_PREFIX}\\d+$"
+        )
+    )
+    application.add_handler(
+        CallbackQueryHandler(
+            _category_selected,
+            pattern=f"^{CATEGORY_CALLBACK_PREFIX}\\d+:\\d+$",
         )
     )
