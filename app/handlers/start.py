@@ -1,9 +1,13 @@
 """Handlers for the bot start interaction."""
 from __future__ import annotations
 
+import base64
+import binascii
+import html
+import io
 from typing import List, Sequence, Tuple
 
-from telegram import Message, Update
+from telegram import InputFile, Message, Update
 from telegram.error import TelegramError
 from telegram.ext import (
     Application,
@@ -13,6 +17,8 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+
+from telegram.constants import ParseMode
 
 from app.database import MongoCollections
 from app.keyboards.main import (
@@ -26,6 +32,7 @@ from app.keyboards.main import (
     MAIN_MENU_KEYBOARD,
     build_brands_keyboard,
     build_categories_keyboard,
+    build_product_details_keyboard,
     build_products_keyboard,
     PRODUCT_CALLBACK_PREFIX,
 )
@@ -328,7 +335,9 @@ async def _category_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await _cleanup_previous_messages(update, context, delete_trigger=False)
 
-    keyboard = build_products_keyboard(products, brand_id=brand_id)
+    keyboard = build_products_keyboard(
+        products, brand_id=brand_id, category_id=category_id
+    )
 
     if products:
         text = PRODUCTS_MESSAGE_TEMPLATE.format(
@@ -390,12 +399,101 @@ async def _product_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return
 
     try:
-        int(query.data.split(":", 1)[1])
+        data = query.data.split(":", 1)[1]
+        brand_part, category_part, product_part = data.split(":", 2)
+        brand_id = int(brand_part)
+        category_id = int(category_part)
+        product_id = int(product_part)
     except (IndexError, ValueError):
         await query.answer("Продукт не найден", show_alert=True)
         return
 
-    await query.answer("Информация о продукте появится позже")
+    mongo = _get_mongo_collections(context)
+    product = mongo.products.find_one(
+        {"id": product_id},
+        {
+            "name": 1,
+            "code": 1,
+            "description": 1,
+            "link": 1,
+            "image_base64": 1,
+            "brand_id": 1,
+            "category_id": 1,
+        },
+    )
+
+    if (
+        not product
+        or int(product.get("brand_id", -1)) != brand_id
+        or int(product.get("category_id", -1)) != category_id
+    ):
+        await query.answer("Продукт не найден", show_alert=True)
+        return
+
+    await query.answer()
+
+    chat = update.effective_chat
+    if chat is None:
+        return
+
+    await _cleanup_previous_messages(update, context, delete_trigger=False)
+
+    name = html.escape(str(product.get("name", "")).strip())
+    code = html.escape(str(product.get("code", "")).strip())
+    description_raw = str(product.get("description", "")).strip()
+    description = html.escape(description_raw).replace("\n", "<br>")
+    link = str(product.get("link", "")).strip()
+
+    caption_parts: list[str] = []
+    if name:
+        caption_parts.append(f"<b>{name}</b>")
+    if code:
+        caption_parts.extend(["", f"<i>Артикул: {code}</i>"])
+    if description:
+        caption_parts.extend(["", f"<blockquote>{description}</blockquote>"])
+    if link:
+        caption_parts.extend(
+            ["", f'<a href="{html.escape(link, quote=True)}">подробнее о продукте</a>']
+        )
+
+    caption = "\n".join(caption_parts) if caption_parts else ""
+
+    image_base64 = str(product.get("image_base64", "")).strip()
+    message: Message | None = None
+
+    if image_base64:
+        try:
+            photo_bytes = base64.b64decode(image_base64)
+        except (binascii.Error, ValueError):
+            photo_bytes = b""
+        if photo_bytes:
+            photo_io = io.BytesIO(photo_bytes)
+            photo_io.name = f"product_{product_id}.jpg"
+            message = await context.bot.send_photo(
+                chat.id,
+                photo=InputFile(photo_io),
+                caption=caption or None,
+                parse_mode=ParseMode.HTML,
+                reply_markup=build_product_details_keyboard(
+                    brand_id=brand_id, category_id=category_id
+                ),
+            )
+
+    if message is None:
+        message = await context.bot.send_message(
+            chat.id,
+            caption or "Информация о продукте недоступна",
+            parse_mode=ParseMode.HTML,
+            reply_markup=build_product_details_keyboard(
+                brand_id=brand_id, category_id=category_id
+            ),
+        )
+
+    _store_last_message(
+        context,
+        message,
+        message_type=f"product_details:{brand_id}:{category_id}:{product_id}",
+    )
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -443,6 +541,6 @@ def register_start_handlers(application: Application) -> None:
     application.add_handler(
         CallbackQueryHandler(
             _product_selected,
-            pattern=f"^{PRODUCT_CALLBACK_PREFIX}\\d+$",
+            pattern=f"^{PRODUCT_CALLBACK_PREFIX}\\d+:\\d+:\\d+$",
         )
     )
