@@ -32,7 +32,7 @@ CATALOG_MESSAGE = "Выберите бренд из списка ниже:"
 HELP_MESSAGE = (
     "наш бот умеет делать то или другое, и вот для помощи вам телефон нашего администратора"
 )
-CATEGORIES_MESSAGE_TEMPLATE = "Выберите категорию для бренда {brand}:"
+CATEGORIES_MESSAGE_TEMPLATE = "Выберите категорию бренда {brand}:"
 
 _LAST_BOT_MESSAGE_KEY = "last_bot_message_id"
 _LAST_BOT_MESSAGE_TYPE_KEY = "last_bot_message_type"
