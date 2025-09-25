@@ -9,6 +9,7 @@ CATALOG_CALLBACK = "main:catalog"
 HELP_CALLBACK = "main:help"
 BACK_CALLBACK = "main:back"
 BRAND_CALLBACK_PREFIX = "brand:"
+CATEGORY_CALLBACK_PREFIX = "category:"
 
 MAIN_MENU_KEYBOARD = InlineKeyboardMarkup(
     [
@@ -36,4 +37,22 @@ def build_brands_keyboard(brands: Sequence[Tuple[int, str]]) -> InlineKeyboardMa
         for brand_id, name in brands
     ]
     rows.append([InlineKeyboardButton("⬅️ НАЗАД", callback_data=BACK_CALLBACK)])
+    return InlineKeyboardMarkup(rows)
+
+
+def build_categories_keyboard(
+    categories: Sequence[Tuple[int, str]], *, brand_id: int
+) -> InlineKeyboardMarkup:
+    """Return an inline keyboard with a button for each category."""
+
+    rows: list[list[InlineKeyboardButton]] = [
+        [
+            InlineKeyboardButton(
+                name,
+                callback_data=f"{CATEGORY_CALLBACK_PREFIX}{brand_id}:{category_id}",
+            )
+        ]
+        for category_id, name in categories
+    ]
+    rows.append([InlineKeyboardButton("⬅️ НАЗАД", callback_data=CATALOG_CALLBACK)])
     return InlineKeyboardMarkup(rows)
