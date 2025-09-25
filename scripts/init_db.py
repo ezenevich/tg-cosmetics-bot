@@ -7,8 +7,10 @@ from app.config import get_settings
 from app.database import create_mongo_collections
 from app.database.management import (
     DEFAULT_BRANDS,
+    DEFAULT_CATEGORIES,
     ensure_admins_collection,
     ensure_brands_collection,
+    ensure_categories_collection,
 )
 
 
@@ -24,6 +26,7 @@ def main() -> None:
     collections = create_mongo_collections(settings)
 
     ensure_brands_collection(collections.brands, DEFAULT_BRANDS)
+    ensure_categories_collection(collections.categories, DEFAULT_CATEGORIES)
     ensure_admins_collection(collections.admins, settings.initial_admin_id)
 
     logging.getLogger(__name__).info("Инициализация базы данных завершена")

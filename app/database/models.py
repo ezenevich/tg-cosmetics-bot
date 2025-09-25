@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Dict
 
-__all__ = ["Brand", "Product"]
+__all__ = ["Brand", "Category", "Product"]
 
 
 @dataclass(frozen=True)
@@ -16,6 +16,19 @@ class Brand:
 
     def to_document(self) -> Dict[str, Any]:
         """Return a MongoDB document representation of the brand."""
+
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class Category:
+    """Representation of a product category stored in MongoDB."""
+
+    id: int
+    name: str
+
+    def to_document(self) -> Dict[str, Any]:
+        """Return a MongoDB document representation of the category."""
 
         return asdict(self)
 
