@@ -7,6 +7,8 @@ import logging
 from app.config import get_settings
 from app.database import create_mongo_collections
 from app.database.management import (
+    DEFAULT_BRANDS,
+    ensure_brands_collection,
     ensure_buttons_collection,
     ensure_game_document,
     reset_players,
@@ -36,6 +38,7 @@ def main() -> None:
 
     ensure_game_document(collections, settings.all_admin_ids)
     ensure_buttons_collection(collections.buttons, reset=args.reset)
+    ensure_brands_collection(collections.brands, DEFAULT_BRANDS)
     if args.reset:
         reset_players(collections.users)
 
