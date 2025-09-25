@@ -44,6 +44,19 @@ async def _safe_delete_message(
         pass
 
 
+def _is_start_command_message(message: Message | None) -> bool:
+    """Return ``True`` if the message contains the ``/start`` command."""
+
+    if message is None:
+        return False
+
+    text = message.text or message.caption
+    if not text:
+        return False
+
+    return text.strip().startswith("/start")
+
+
 async def _cleanup_previous_messages(
     update: Update, context: ContextTypes.DEFAULT_TYPE, *, delete_trigger: bool
 ) -> None:
@@ -59,13 +72,22 @@ async def _cleanup_previous_messages(
     if stored_id is not None:
         await _safe_delete_message(context, chat.id, stored_id)
 
+    trigger_message: Message | None = None
+
     if delete_trigger:
         if update.message is not None:
-            trigger_message_id = update.message.message_id
+            trigger_message = update.message
         elif update.callback_query is not None and update.callback_query.message:
-            trigger_message_id = update.callback_query.message.message_id
+            trigger_message = update.callback_query.message
 
-        if trigger_message_id is not None and trigger_message_id != stored_id:
+        if trigger_message is not None:
+            trigger_message_id = trigger_message.message_id
+
+        if (
+            trigger_message_id is not None
+            and trigger_message_id != stored_id
+            and not _is_start_command_message(trigger_message)
+        ):
             await _safe_delete_message(context, chat.id, trigger_message_id)
 
 
