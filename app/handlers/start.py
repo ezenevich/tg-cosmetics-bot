@@ -441,7 +441,7 @@ async def _product_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     name = html.escape(str(product.get("name", "")).strip())
     code = html.escape(str(product.get("code", "")).strip())
     description_raw = str(product.get("description", "")).strip()
-    description = html.escape(description_raw).replace("\n", "<br>")
+    description = html.escape(description_raw).replace("\n", "<br/>")
     link = str(product.get("link", "")).strip()
 
     caption_parts: list[str] = []
