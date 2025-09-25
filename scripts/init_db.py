@@ -1,17 +1,14 @@
 """Utility script to initialise MongoDB collections for the bot."""
 from __future__ import annotations
 
-import argparse
 import logging
 
 from app.config import get_settings
 from app.database import create_mongo_collections
 from app.database.management import (
     DEFAULT_BRANDS,
+    ensure_admins_collection,
     ensure_brands_collection,
-    ensure_buttons_collection,
-    ensure_game_document,
-    reset_players,
 )
 
 
@@ -23,24 +20,11 @@ def main() -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    parser = argparse.ArgumentParser(
-        description="Initialise MongoDB collections for the Telegram bot",
-    )
-    parser.add_argument(
-        "--reset",
-        action="store_true",
-        help="Очистить игроков и кнопки перед новой игрой",
-    )
-    args = parser.parse_args()
-
     settings = get_settings()
     collections = create_mongo_collections(settings)
 
-    ensure_game_document(collections, settings.all_admin_ids)
-    ensure_buttons_collection(collections.buttons, reset=args.reset)
     ensure_brands_collection(collections.brands, DEFAULT_BRANDS)
-    if args.reset:
-        reset_players(collections.users)
+    ensure_admins_collection(collections.admins, settings.initial_admin_id)
 
     logging.getLogger(__name__).info("Инициализация базы данных завершена")
 

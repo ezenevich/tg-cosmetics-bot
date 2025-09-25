@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from typing import Optional, Sequence
 
 from pymongo.collection import Collection
 
@@ -10,6 +10,7 @@ from app.database import MongoCollections
 
 __all__ = [
     "ensure_brands_collection",
+    "ensure_admins_collection",
     "DEFAULT_BRANDS",
 ]
 
@@ -47,3 +48,31 @@ def ensure_brands_collection(brands: Collection, brand_names: Sequence[str]) -> 
         logger.info("Добавлено %s брендов", len(new_docs))
     else:
         logger.info("Коллекция брендов уже инициализирована")
+
+
+def ensure_admins_collection(
+    admins: Collection, initial_admin_id: Optional[int]
+) -> None:
+    """Ensure the initial administrator exists in the admins collection."""
+
+    if initial_admin_id is None:
+        logger.info("INITIAL_ADMIN_ID не задан, коллекция администраторов не изменена")
+        return
+
+    existing = admins.find_one(
+        {"telegram_id": initial_admin_id},
+        projection={"id": 1},
+    )
+    if existing:
+        logger.info(
+            "Администратор с telegram_id=%s уже существует", initial_admin_id
+        )
+        return
+
+    last = admins.find_one(sort=[("id", -1)], projection={"id": 1})
+    next_id = int(last.get("id", 0)) + 1 if last else 1
+
+    admins.insert_one({"id": next_id, "telegram_id": initial_admin_id})
+    logger.info(
+        "Добавлен администратор с id=%s и telegram_id=%s", next_id, initial_admin_id
+    )
