@@ -21,6 +21,8 @@ class MongoCollections:
     users: Collection
     buttons: Collection
     game: Collection
+    brands: Collection
+    products: Collection
 
 
 def create_mongo_collections(settings: Settings) -> MongoCollections:
@@ -34,4 +36,6 @@ def create_mongo_collections(settings: Settings) -> MongoCollections:
         users=database["users"],
         buttons=database["buttons"],
         game=database["game"],
+        brands=database["brands"],
+        products=database["products"],
     )
